@@ -65,10 +65,20 @@ function renderTemplate(template, { symbol, user, lang, currency }) {
   html = html.replaceAll(remoteGameRoot, localGameRoot);
   const remoteHubRoot = 'https://demogamesfree.pragmaticplay.net/hub-demo';
   html = html
+    .replaceAll(remoteHubRoot + '/common/js/html5-script-external.js',
+      `/public/${symbol}/gs2c/common/js/html5-script-external.js`)
     .replaceAll(remoteHubRoot + '/ge/v4/gameService', '/hub-demo/ge/v4/gameService')
     .replaceAll(remoteHubRoot + '/stats.do', '/hub-demo/stats.do')
     .replaceAll(remoteHubRoot + '/regulation/process.do', '/hub-demo/regulation/process.do')
+    .replaceAll('https://clienthub.pragmaticplay.com/slots/game-library/', '/')
     .replace(/stylename@generic~SESSION@[a-f0-9-]{36}/g, escapeHtml(user));
+
+  // This optional clienthub helper is not part of the PPCode asset package.
+  // The game has no cashier/lobby integration here, so provide its no-op API.
+  html = html.replace(
+    /<script[^>]+src="https:\/\/demogamesfree\.pragmaticplay\.net\/hub-demo\/common\/js\/demo-js-api-script\.js"><\/script>/,
+    '<script>window.JsApiHelper=window.JsApiHelper||{init:function(){}};</script>'
+  );
 
   // The imported wrappers contain an unused hard-coded private-IP console
   // telemetry target. Keep any accidental invocation local.
