@@ -5,7 +5,7 @@ const { Pool } = require('pg');
 
 function required(name, value) {
   if (!value || !String(value).trim()) {
-    throw new Error(\`Missing required environment variable: \${name}\`);
+    throw new Error(`Missing required environment variable: ${name}`);
   }
   return String(value).trim();
 }
