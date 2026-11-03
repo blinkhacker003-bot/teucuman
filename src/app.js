@@ -158,7 +158,13 @@ function requestParams(req) {
 async function proxyPpcodeGame(req, res) {
   try {
     const params = requestParams(req);
-    const result = await ppcodeGames.handleGameRequest(req.params.symbol, params, String(req.query.ver || ''));
+    const isHubV4 = req.path === '/hub-demo/ge/v4/gameService' || req.path === '/hub-demo/reloadBalance.do';
+    if (req.path === '/hub-demo/reloadBalance.do' && !params.action) params.action = 'reloadBalance';
+    const result = await ppcodeGames.handleGameRequest(
+      req.params.symbol || null,
+      params,
+      isHubV4 ? 'v4' : String(req.query.ver || '')
+    );
     res.status(result.status).type(result.contentType)
       .set('Cache-Control', 'no-store')
       .send(result.body);
@@ -185,6 +191,30 @@ app.get('/public/:symbol/gs2c/html5Game.php', (req, res, next) =>
 app.all('/public/:symbol/gs2c/v3/gameService', proxyPpcodeGame);
 app.all('/public/:symbol/server', proxyPpcodeGame);
 app.all('/game/:symbol/server', proxyPpcodeGame);
+app.all('/hub-demo/ge/v4/gameService', proxyPpcodeGame);
+app.all('/hub-demo/reloadBalance.do', proxyPpcodeGame);
+app.all('/hub-demo/saveSettings.do', async (req, res) => {
+  try {
+    const params = requestParams(req);
+    let symbol = await ppcodeGames.getGameSymbolForSession(params.mgckey);
+    if (!symbol) {
+      const referer = req.get('Referer') || '';
+      const match = referer.match(/\\/public\\/(vs[a-z0-9]+)\\/gs2c\\/html5Game\\.php/i);
+      if (match) symbol = match[1];
+    }
+    if (!symbol) return res.status(400).type('text/plain').send('error=1');
+    const settings = await ppcodeGames.getSettings(symbol);
+    res.type('text/plain').set('Cache-Control', 'no-store').send(settings);
+  } catch (err) {
+    console.error('[ppcode-settings]', err.message);
+    res.status(err.code === 'ENOENT' ? 404 : 400).type('text/plain').send('error=1');
+  }
+});
+app.all('/hub-demo/stats.do', (_req, res) => res.status(200).send(''));
+app.all('/hub-demo/regulation/*', (_req, res) => res.status(200).send(''));
+app.all('/hub-demo/logout.do', (_req, res) => res.status(200).send(''));
+app.all('/hub-demo/closeGame.do', (_req, res) => res.status(200).send(''));
+app.all('/hub-demo/jackpot/*', (_req, res) => res.status(200).send(''));
 
 if (ppcodeGames.PUBLIC_ROOT) {
   // Never expose arbitrary PHP source files from the imported PPCode tree.
