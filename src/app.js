@@ -191,6 +191,9 @@ app.get('/public/:symbol/gs2c/html5Game.php', (req, res, next) =>
 app.all('/public/:symbol/gs2c/v3/gameService', proxyPpcodeGame);
 app.all('/public/:symbol/server', proxyPpcodeGame);
 app.all('/game/:symbol/server', proxyPpcodeGame);
+app.all('/public/:symbol/gs2c/stats.do', (_req, res) => res.status(200).send(''));
+app.all('/public/:symbol/gs2c/clientLog.do', (_req, res) => res.status(200).send(''));
+app.all('/public/:symbol/gs2c/regulation/*', (_req, res) => res.status(200).send(''));
 app.all('/hub-demo/ge/v4/gameService', proxyPpcodeGame);
 app.all('/hub-demo/reloadBalance.do', proxyPpcodeGame);
 app.all('/hub-demo/saveSettings.do', async (req, res) => {
