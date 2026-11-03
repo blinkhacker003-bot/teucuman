@@ -26,7 +26,7 @@ fi
 echo "[1/9] Installing required Ubuntu packages..."
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y nodejs npm postgresql nginx certbot python3-certbot-nginx curl openssl
+apt-get install -y nodejs npm postgresql nginx certbot python3-certbot-nginx curl openssl acl
 
 if ! node -e "process.exit(Number(process.versions.node.split('.')[0]) >= 18 ? 0 : 1)"; then
   echo "Installing Node.js 20 LTS..."
@@ -62,6 +62,13 @@ if ! id teucuman >/dev/null 2>&1; then
   useradd --system --home "${PROJECT_DIR}" --shell /usr/sbin/nologin teucuman
 fi
 
+PP_ASSETS_ROOT=""
+if [[ -d /var/www/ppcode/public ]]; then
+  PP_ASSETS_ROOT="/var/www/ppcode/public"
+  setfacl -R -m u:teucuman:rX "${PP_ASSETS_ROOT}"
+  find "${PP_ASSETS_ROOT}" -type d -exec setfacl -m d:u:teucuman:rX {} \\;
+fi
+
 install -d -o root -g teucuman -m 750 /etc/teucuman
 cat > /etc/teucuman/teucuman.env <<EOF
 NODE_ENV=production
@@ -78,6 +85,9 @@ DB_PASS=${DB_PASS}
 DB_SSL=false
 DB_POOL_MAX=10
 DEFAULT_BALANCE=50000
+PP_ASSETS_ROOT=${PP_ASSETS_ROOT}
+PRAGMATIC_DEMO_ORIGIN=https://demogamesfree.pragmaticplay.net
+PROVIDER_TIMEOUT_MS=20000
 EOF
 chown root:teucuman /etc/teucuman/teucuman.env
 chmod 640 /etc/teucuman/teucuman.env
