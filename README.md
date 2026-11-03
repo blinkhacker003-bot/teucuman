@@ -19,7 +19,7 @@ A standalone Node.js/Express server for the bundled Sweet Bonanza 1000 HTML5 fro
 For a fresh Ubuntu host, clone the repository to the service path:
 
 ```bash
-sudo git clone --branch codex/production-bootstrap https://github.com/blinkhacker003-bot/teucuman.git /var/www/teucuman
+sudo git clone --branch main https://github.com/blinkhacker003-bot/teucuman.git /var/www/teucuman
 cd /var/www/teucuman
 sudo DOMAIN=game.example.com bash scripts/bootstrap-ubuntu.sh
 ```
