@@ -114,9 +114,17 @@ async function createProviderKey(symbol) {
 }
 
 async function handleGameRequest(symbol, params, ver = '') {
-  const db = require('../config/db');
   const safe = safeSymbol(symbol);
   const action = String(params.action || '');
+
+  // PPCode handles the settings action by reading the game's local settings file.
+  if (action === 'settings') {
+    const settingsPath = path.join(requireAssets(), safe, 'gs2c', 'saveSettings.do');
+    const settings = await fs.readFile(settingsPath, 'utf8');
+    return { status: 200, contentType: 'text/plain; charset=utf-8', body: settings };
+  }
+
+  const db = require('../config/db');
   const localKey = String(params.mgckey || '');
   if (!localKey || localKey.length > 128 || !/^[a-zA-Z0-9_-]+$/.test(localKey)) {
     throw new Error('INVALID_SESSION_KEY');
