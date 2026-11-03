@@ -26,12 +26,16 @@ CREATE INDEX IF NOT EXISTS idx_sessions_updated_at ON sessions (updated_at);
 CREATE TABLE IF NOT EXISTS provider_game_sessions (
   local_key       TEXT PRIMARY KEY,
   game_symbol     TEXT NOT NULL,
-  provider_mgckey TEXT NOT NULL,
+  provider_mgckey TEXT,
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_provider_game_sessions_updated_at
   ON provider_game_sessions (updated_at);
+
+-- Upgrade an earlier deployment where only fully initialized sessions were stored.
+ALTER TABLE provider_game_sessions
+  ALTER COLUMN provider_mgckey DROP NOT NULL;
 `;
 
 (async () => {
