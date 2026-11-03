@@ -155,10 +155,17 @@ async function createProviderKey(symbol) {
   return providerKey;
 }
 
+const DEFAULT_PROVIDER_SETTINGS = 'SoundState=true_true_true_false_false;FastPlay=false;Intro=true;StopMsg=0;TurboSpinMsg=0;BetInfo=0_-1;BatterySaver=false;ShowCCH=false;ShowFPH=false;CustomGameStoredData=;Coins=false;Volume=0.5;GameSpeed=0;HapticFeedback=false';
+
 async function getSettings(symbol) {
   const safe = safeSymbol(symbol);
   await gameDirectory(safe);
-  return fs.readFile(path.join(requireAssets(), safe, 'gs2c', 'saveSettings.do'), 'utf8');
+  try {
+    return await fs.readFile(path.join(requireAssets(), safe, 'gs2c', 'saveSettings.do'), 'utf8');
+  } catch (err) {
+    if (err.code === 'ENOENT') return DEFAULT_PROVIDER_SETTINGS;
+    throw err;
+  }
 }
 
 async function getGameSymbolForSession(localKey) {
