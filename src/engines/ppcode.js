@@ -3,7 +3,6 @@
 const fs = require('fs/promises');
 const path = require('path');
 const crypto = require('crypto');
-const db = require('../config/db');
 
 const PUBLIC_ROOT = process.env.PP_ASSETS_ROOT
   ? path.resolve(process.env.PP_ASSETS_ROOT)
@@ -112,6 +111,7 @@ async function createProviderKey(symbol) {
 }
 
 async function handleGameRequest(symbol, params, ver = '') {
+  const db = require('../config/db');
   const safe = safeSymbol(symbol);
   const action = String(params.action || '');
   const localKey = String(params.mgckey || '');
