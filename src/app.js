@@ -74,6 +74,7 @@ app.use((req, _res, next) => {
     'reloadBalance',
     'saveSettings',
     'html5Game',
+    'play',
   ];
   if (!keepQuery.some(item => req.path.includes(item))) {
     req.url = req.url.split('?')[0];
