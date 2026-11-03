@@ -56,3 +56,24 @@ test('embedded private-IP console telemetry is redirected locally', () => {
   assert.ok(html.includes('/__disabled_game_console__?'));
   assert.ok(!html.includes('192.168.10.108'));
 });
+
+test('Sugar Rush X v4 wrapper is rebound to local assets and a fresh session key', () => {
+  const template = [
+    '"datapath":"https://demogamesfree.pragmaticplay.net/hub-demo/common/v2/games-html5/games/vs/vs20sugarrushx/"',
+    '"gameService":"https://demogamesfree.pragmaticplay.net/hub-demo/ge/v4/gameService"',
+    '"statisticsURL":"https://demogamesfree.pragmaticplay.net/hub-demo/stats.do"',
+    '"mgckey":"stylename@generic~SESSION@8f7301d1-7367-462b-8d54-a3dd57c152d8"',
+  ].join(',');
+  const html = ppcode.renderTemplate(template, {
+    symbol: 'vs20sugarrushx',
+    user: 'stylename@generic~SESSION@12345678-1234-1234-1234-123456789abc',
+    lang: 'pt',
+    currency: 'BRL',
+  });
+
+  assert.ok(html.includes('/public/vs20sugarrushx/gs2c/common/games-html5/games/vs/vs20sugarrushx/'));
+  assert.ok(html.includes('"gameService":"/hub-demo/ge/v4/gameService"'));
+  assert.ok(html.includes('"statisticsURL":"/hub-demo/stats.do"'));
+  assert.ok(html.includes('stylename@generic~SESSION@12345678-1234-1234-1234-123456789abc'));
+  assert.ok(!html.includes('8f7301d1-7367-462b-8d54-a3dd57c152d8'));
+});
