@@ -1,0 +1,24 @@
+[Unit]
+Description=Teucuman Sweet Bonanza Demo Server
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=teucuman
+Group=teucuman
+WorkingDirectory=/var/www/teucuman
+EnvironmentFile=/etc/teucuman/teucuman.env
+ExecStart=/usr/bin/node /var/www/teucuman/src/app.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/www/teucuman
+
+[Install]
+WantedBy=multi-user.target

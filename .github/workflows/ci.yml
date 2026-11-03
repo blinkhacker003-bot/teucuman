@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm test
+      - name: Check JavaScript syntax
+        run: |
+          node --check src/app.js
+          node --check src/config/db.js
+          node --check src/config/migrate.js
+          node --check src/models/sessionModel.js
+          node --check src/engines/sb.js
+          node --check src/engines/ppcode.js
+          node --check test/ppcode.test.js
+      - name: Check shell script syntax
+        run: bash -n scripts/bootstrap-ubuntu.sh scripts/smoke-test.sh
