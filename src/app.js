@@ -142,7 +142,7 @@ async function renderPpcodePage(req, res, next, symbol) {
       .set('Pragma', 'no-cache')
       .send(page.html);
   } catch (err) {
-    if (err.message === 'INVALID_GAME') return res.status(404).type('text/plain').send('Game not found');
+    if (err.message === 'INVALID_GAME' || err.code === 'ENOENT') return res.status(404).type('text/plain').send('Game not found');
     if (err.message === 'PP_ASSETS_ROOT_NOT_CONFIGURED') return res.status(503).type('text/plain').send('PP_ASSETS_ROOT is not configured');
     next(err);
   }
