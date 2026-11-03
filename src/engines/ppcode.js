@@ -139,7 +139,9 @@ async function createProviderKey(symbol) {
     headers: {
       'User-Agent': 'Mozilla/5.0',
       'Accept': '*/*',
-      'Referer': PROVIDER_ORIGIN + '/',
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Origin': PROVIDER_REQUEST_ORIGIN,
+      'Referer': PROVIDER_REQUEST_ORIGIN + '/',
     },
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
