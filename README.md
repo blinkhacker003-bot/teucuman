@@ -1,6 +1,6 @@
 # Teucuman — Sweet Bonanza 1000 Demo Server
 
-A standalone Node.js/Express server for the bundled Sweet Bonanza 1000 HTML5 frontend. PostgreSQL stores isolated demo sessions and test balances.
+A standalone Node.js/Express server for the bundled Sweet Bonanza 1000 demo and optional PPCode HTML5 game catalog. PostgreSQL stores isolated local and upstream demo sessions.
 
 > **Important:** This repository is a demo/test implementation. The game server cycles through prerecorded response fixtures in `games/sb/responses/index.json`; it is not the official Pragmatic Play game engine, does not connect to a licensed provider, and is not suitable for real-money play or production wallet settlement. The bundled frontend/assets may be subject to third-party intellectual-property and distribution rights. Deploy them only if you have permission.
 
@@ -13,6 +13,46 @@ A standalone Node.js/Express server for the bundled Sweet Bonanza 1000 HTML5 fro
 - PostgreSQL-backed demo balances and spin/collect counters
 - Idempotent database migration: `npm run db:migrate`
 - Health endpoint: `GET /healthz`
+
+## Add the PPCode game catalog
+
+The private `blinkhacker003-bot/ppcode` repository contains **38 Pragmatic Play HTML5 frontend packages** under `public/<symbol>/` (about **5.0 GB** in total). Teucuman serves these files directly from a separate PPCode checkout instead of copying several gigabytes into this repository.
+
+1. Check out PPCode beside Teucuman using your own authorized GitHub credentials:
+
+   ```bash
+   sudo git clone https://github.com/blinkhacker003-bot/ppcode.git /var/www/ppcode
+   ```
+
+   If it is already present at `/var/www/ppcode`, do not clone it again.
+
+2. Set this in Teucuman's private environment file (for example `/etc/teucuman/teucuman.env`):
+
+   ```dotenv
+   PP_ASSETS_ROOT=/var/www/ppcode/public
+   PRAGMATIC_DEMO_ORIGIN=https://demogamesfree.pragmaticplay.net
+   PROVIDER_TIMEOUT_MS=20000
+   ```
+
+3. Allow the Teucuman service account to read the PPCode assets. On Ubuntu, install ACL support if needed, then grant read/traverse access without changing file ownership:
+
+   ```bash
+   sudo apt-get install -y acl
+   sudo setfacl -R -m u:teucuman:rX /var/www/ppcode/public
+   sudo find /var/www/ppcode/public -type d -exec setfacl -m d:u:teucuman:rX {} \\;
+   ```
+
+4. Apply the migration and restart Teucuman:
+
+   ```bash
+   cd /var/www/teucuman
+   npm run db:migrate
+   sudo systemctl restart teucuman
+   ```
+
+Open the Teucuman home page to see the discovered game catalog, or open a game directly at `/play/<symbol>` (for example `/play/vs20sugarrush`). The wrapper is rendered by Node, and the original `public/<symbol>/` assets are served from PPCode. The browser-visible session key is mapped to a separate upstream demo session in PostgreSQL.
+
+If PPCode is stored at another path, change `PP_ASSETS_ROOT` to its `public` directory. Do not make the private PPCode checkout world-readable or put GitHub credentials in the Teucuman repository.
 
 ## Quick Ubuntu bootstrap
 
