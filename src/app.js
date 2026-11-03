@@ -60,7 +60,7 @@ app.use((req, res, next) => {
   res.on('finish', () => {
     const color = res.statusCode >= 400 ? '\x1b[31m' : '\x1b[32m';
     console.log(
-      \`\${color}\${req.method}\x1b[0m \${req.path} → \${res.statusCode} (\${Date.now() - startedAt}ms)\`
+      `${color}${req.method}\x1b[0m ${req.path} → ${res.statusCode} (${Date.now() - startedAt}ms)`
     );
   });
   next();
@@ -96,7 +96,7 @@ function publicOrigin(req) {
     throw new Error('PUBLIC_BASE_URL is required in production');
   }
 
-  return \`\${req.protocol}://\${req.get('host')}\`;
+  return `${req.protocol}://${req.get('host')}`;
 }
 
 // The supplied HTML contains the old Railway host and a fixed session key.
@@ -109,7 +109,7 @@ app.get('/gs2c/html5Game.html', async (req, res, next) => {
     let html = await fs.readFile(GAME_HTML, 'utf8');
 
     html = html.replaceAll(RAILWAY_ORIGIN, origin);
-    html = html.replace(/SESSION@[^~"'\\s]+/g, \`SESSION@\${mgckey}\`);
+    html = html.replace(/SESSION@[^~"'\s]+/g, `SESSION@${mgckey}`);
 
     res
       .status(200)
@@ -170,7 +170,7 @@ app.get('/api/slots/gs2c/reloadBalance.do', async (req, res) => {
       .type('text/plain')
       .set('Cache-Control', 'no-store')
       .send(
-        \`balance_bonus=0.00&balance=\${formatBalance(balance)}&balance_cash=\${formatBalance(balance)}&stime=\${Date.now()}\`
+        `balance_bonus=0.00&balance=${formatBalance(balance)}&balance_cash=${formatBalance(balance)}&stime=${Date.now()}`
       );
   } catch (err) {
     console.error('[reloadBalance]', err.message);
@@ -221,7 +221,7 @@ app.get('/', (_req, res) => {
 });
 
 app.use((req, res) => {
-  console.warn(\`[404] \${req.method} \${req.originalUrl}\`);
+  console.warn(`[404] ${req.method} ${req.originalUrl}`);
   res.status(404).type('text/plain').send('Not Found');
 });
 
@@ -238,12 +238,12 @@ async function start() {
 
   await pool.query('SELECT 1');
   const server = app.listen(PORT, HOST, () => {
-    console.log(\`[DB] Connected ✓\`);
-    console.log(\`[HTTP] Teucuman listening on http://\${HOST}:\${PORT}\`);
+    console.log(`[DB] Connected ✓`);
+    console.log(`[HTTP] Teucuman listening on http://${HOST}:${PORT}`);
   });
 
   const shutdown = signal => {
-    console.log(\`[HTTP] \${signal} received; shutting down\`);
+    console.log(`[HTTP] ${signal} received; shutting down`);
     server.close(async () => {
       await pool.end();
       process.exit(0);
