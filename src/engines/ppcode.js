@@ -54,9 +54,9 @@ function escapeHtml(value) {
 
 function renderTemplate(template, { symbol, user, lang, currency }) {
   let html = template
-    .replace(/<\\?php\\s+echo\\s+\\$_GET\\[['"]user['"]\\];\\s*\\?>/g, escapeHtml(user))
-    .replace(/<\\?php\\s+echo\\s+\\$_GET\\[['"]lang['"]\\];\\s*\\?>/g, escapeHtml(lang))
-    .replace(/<\\?php\\s+echo\\s+\\$_GET\\[['"]cur['"]\\];\\s*\\?>/g, escapeHtml(currency));
+    .replace(/<\?php\s+echo\s+\$_GET\[['"]user['"]\];\s*\?>/g, escapeHtml(user))
+    .replace(/<\?php\s+echo\s+\$_GET\[['"]lang['"]\];\s*\?>/g, escapeHtml(lang))
+    .replace(/<\?php\s+echo\s+\$_GET\[['"]cur['"]\];\s*\?>/g, escapeHtml(currency));
   // The imported PPCode wrapper contains an unused hard-coded private-IP
   // console telemetry target. Keep any accidental invocation local.
   html = html.replaceAll('https://192.168.10.108:8000/console.php?', '/__disabled_game_console__?');
