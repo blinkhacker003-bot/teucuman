@@ -81,11 +81,16 @@ app.use((req, _res, next) => {
 });
 
 // Game frontend assets are served from the repository's public/gs2c directory.
-app.use('/gs2c', express.static(path.join(__dirname, '../public/gs2c'), {
+const gameAssets = express.static(path.join(__dirname, '../public/gs2c'), {
   maxAge: 0,
   etag: false,
   setHeaders: res => res.setHeader('Cache-Control', 'no-store'),
-}));
+});
+
+app.use('/gs2c', (req, res, next) => {
+  if (req.path === '/html5Game.html') return next();
+  return gameAssets(req, res, next);
+});
 
 function publicOrigin(req) {
   if (process.env.PUBLIC_BASE_URL) {
