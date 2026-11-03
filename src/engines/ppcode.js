@@ -57,22 +57,51 @@ function renderTemplate(template, { symbol, user, lang, currency }) {
     .replace(/<\?php\s+echo\s+\$_GET\[['"]user['"]\];\s*\?>/g, escapeHtml(user))
     .replace(/<\?php\s+echo\s+\$_GET\[['"]lang['"]\];\s*\?>/g, escapeHtml(lang))
     .replace(/<\?php\s+echo\s+\$_GET\[['"]cur['"]\];\s*\?>/g, escapeHtml(currency));
-  // The imported PPCode wrapper contains an unused hard-coded private-IP
-  // console telemetry target. Keep any accidental invocation local.
+
+  // Sugar Rush X uses the newer hub-demo v4 wrapper and ships with a fixed
+  // session key and absolute provider URLs. Rebind those to this deployment.
+  const remoteGameRoot = `https://demogamesfree.pragmaticplay.net/hub-demo/common/v2/games-html5/games/vs/${symbol}/`;
+  const localGameRoot = `/public/${symbol}/gs2c/common/games-html5/games/vs/${symbol}/`;
+  html = html.replaceAll(remoteGameRoot, localGameRoot);
+  const remoteHubRoot = 'https://demogamesfree.pragmaticplay.net/hub-demo';
+  html = html
+    .replaceAll(remoteHubRoot + '/ge/v4/gameService', '/hub-demo/ge/v4/gameService')
+    .replaceAll(remoteHubRoot + '/stats.do', '/hub-demo/stats.do')
+    .replaceAll(remoteHubRoot + '/regulation/process.do', '/hub-demo/regulation/process.do')
+    .replace(/stylename@generic~SESSION@[a-f0-9-]{36}/g, escapeHtml(user));
+
+  // The imported wrappers contain an unused hard-coded private-IP console
+  // telemetry target. Keep any accidental invocation local.
   html = html.replaceAll('https://192.168.10.108:8000/console.php?', '/__disabled_game_console__?');
-  if (/<\\?php/.test(html)) throw new Error('UNSUPPORTED_GAME_TEMPLATE');
+  if (/<\?php/.test(html)) throw new Error('UNSUPPORTED_GAME_TEMPLATE');
   return html;
 }
 
 async function renderGame(symbol, query = {}) {
   const safe = safeSymbol(symbol);
   const { wrapper } = await gameDirectory(safe);
-  const user = String(query.user || crypto.randomUUID());
-  if (user.length > 128 || !/^[a-zA-Z0-9_-]+$/.test(user)) throw new Error('INVALID_SESSION_KEY');
+  const generatedKey = safe === 'vs20sugarrushx'
+    ? `stylename@generic~SESSION@${crypto.randomUUID()}`
+    : crypto.randomUUID();
+  const user = String(query.user || generatedKey);
+  if (user.length > 128 || !/^[-a-zA-Z0-9_@~]+$/.test(user)) throw new Error('INVALID_SESSION_KEY');
   const lang = String(query.lang || 'pt').slice(0, 8);
   const currency = String(query.cur || 'BRL').slice(0, 8);
   const template = await fs.readFile(wrapper, 'utf8');
   const html = renderTemplate(template, { symbol: safe, user, lang, currency });
+
+  // Register a pending local session before the browser calls the v4 endpoint,
+  // whose URL does not carry a game symbol.
+  const db = require('../config/db');
+  await db.query(
+    `INSERT INTO provider_game_sessions (local_key, game_symbol, provider_mgckey)
+     VALUES ($1, $2, NULL)
+     ON CONFLICT (local_key) DO UPDATE
+     SET game_symbol=EXCLUDED.game_symbol,
+         provider_mgckey=NULL,
+         updated_at=NOW()`,
+    [user, safe]
+  );
   return { html, user, symbol: safe };
 }
 
@@ -113,22 +142,47 @@ async function createProviderKey(symbol) {
   return providerKey;
 }
 
-async function handleGameRequest(symbol, params, ver = '') {
+async function getSettings(symbol) {
   const safe = safeSymbol(symbol);
   await gameDirectory(safe);
-  const action = String(params.action || '');
+  return fs.readFile(path.join(requireAssets(), safe, 'gs2c', 'saveSettings.do'), 'utf8');
+}
 
-  // PPCode handles the settings action by reading the game's local settings file.
-  if (action === 'settings') {
-    const settingsPath = path.join(requireAssets(), safe, 'gs2c', 'saveSettings.do');
-    const settings = await fs.readFile(settingsPath, 'utf8');
-    return { status: 200, contentType: 'text/plain; charset=utf-8', body: settings };
+async function getGameSymbolForSession(localKey) {
+  if (!localKey) return null;
+  const db = require('../config/db');
+  const { rows } = await db.query(
+    'SELECT game_symbol FROM provider_game_sessions WHERE local_key=$1',
+    [String(localKey)]
+  );
+  return rows[0]?.game_symbol || null;
+}
+
+async function handleGameRequest(symbol, params, ver = '') {
+  const db = require('../config/db');
+  const action = String(params.action || '');
+  const localKey = String(params.mgckey || '');
+  if (!localKey || localKey.length > 128 || !/^[-a-zA-Z0-9_@~]+$/.test(localKey)) {
+    throw new Error('INVALID_SESSION_KEY');
   }
 
-  const db = require('../config/db');
-  const localKey = String(params.mgckey || '');
-  if (!localKey || localKey.length > 128 || !/^[a-zA-Z0-9_-]+$/.test(localKey)) {
-    throw new Error('INVALID_SESSION_KEY');
+  const { rows: existing } = await db.query(
+    'SELECT game_symbol, provider_mgckey FROM provider_game_sessions WHERE local_key=$1',
+    [localKey]
+  );
+  const existingSession = existing[0] || null;
+  const safe = safeSymbol(symbol || existingSession?.game_symbol);
+  await gameDirectory(safe);
+  if (existingSession && existingSession.game_symbol !== safe) {
+    throw new Error('GAME_SESSION_NOT_FOUND');
+  }
+
+  if (action === 'settings') {
+    return {
+      status: 200,
+      contentType: 'text/plain; charset=utf-8',
+      body: await getSettings(safe),
+    };
   }
 
   let providerKey;
@@ -144,12 +198,8 @@ async function handleGameRequest(symbol, params, ver = '') {
       [localKey, safe, providerKey]
     );
   } else {
-    const { rows } = await db.query(
-      'SELECT game_symbol, provider_mgckey FROM provider_game_sessions WHERE local_key=$1',
-      [localKey]
-    );
-    if (!rows[0] || rows[0].game_symbol !== safe) throw new Error('GAME_SESSION_NOT_FOUND');
-    providerKey = rows[0].provider_mgckey;
+    if (!existingSession?.provider_mgckey) throw new Error('GAME_SESSION_NOT_FOUND');
+    providerKey = existingSession.provider_mgckey;
   }
 
   const form = new URLSearchParams();
@@ -190,5 +240,7 @@ module.exports = {
   listGames,
   renderGame,
   renderTemplate,
+  getSettings,
+  getGameSymbolForSession,
   handleGameRequest,
 };
