@@ -2,17 +2,17 @@
 
 A standalone Node.js/Express server for the bundled Sweet Bonanza 1000 HTML5 frontend. PostgreSQL stores isolated demo sessions and test balances.
 
-> **Important:** This repository is a demo/test implementation. The game server cycles through prerecorded response fixtures in \`games/sb/responses/index.json\`; it is not the official Pragmatic Play game engine, does not connect to a licensed provider, and is not suitable for real-money play or production wallet settlement. The bundled frontend/assets may be subject to third-party intellectual-property and distribution rights. Deploy them only if you have permission.
+> **Important:** This repository is a demo/test implementation. The game server cycles through prerecorded response fixtures in `games/sb/responses/index.json`; it is not the official Pragmatic Play game engine, does not connect to a licensed provider, and is not suitable for real-money play or production wallet settlement. The bundled frontend/assets may be subject to third-party intellectual-property and distribution rights. Deploy them only if you have permission.
 
 ## What is included
 
-- Express server on \`HOST:PORT\` (default \`127.0.0.1:3000\`)
-- Game assets served from \`public/gs2c/\`
-- HTML5 game page served at \`/gs2c/html5Game.html\`
+- Express server on `HOST:PORT` (default `127.0.0.1:3000`)
+- Game assets served from `public/gs2c/`
+- HTML5 game page served at `/gs2c/html5Game.html`
 - Per-page session key generation and replacement of the previous Railway origin
 - PostgreSQL-backed demo balances and spin/collect counters
-- Idempotent database migration: \`npm run db:migrate\`
-- Health endpoint: \`GET /healthz\`
+- Idempotent database migration: `npm run db:migrate`
+- Health endpoint: `GET /healthz`
 
 ## Requirements
 
@@ -25,133 +25,133 @@ A standalone Node.js/Express server for the bundled Sweet Bonanza 1000 HTML5 fro
 
 From the repository root:
 
-\`\`\`bash
+```bash
 node --version
 npm --version
-\`\`\`
+```
 
 Node must be v18 or newer. Install application dependencies:
 
-\`\`\`bash
+```bash
 npm install --omit=dev
-\`\`\`
+```
 
 ## 2. Create an isolated PostgreSQL database
 
 Do not point this demo at an unrelated application database. Create a dedicated role and database:
 
-\`\`\`bash
+```bash
 sudo -u postgres psql
-\`\`\`
+```
 
 At the PostgreSQL prompt, replace the password with a long random value and run:
 
-\`\`\`sql
+```sql
 CREATE ROLE teucuman_app LOGIN PASSWORD 'REPLACE_WITH_A_LONG_RANDOM_PASSWORD';
 CREATE DATABASE teucuman OWNER teucuman_app;
-\\q
-\`\`\`
+\q
+```
 
-The migration creates only the \`sessions\` table and its supporting index in this dedicated database.
+The migration creates only the `sessions` table and its supporting index in this dedicated database.
 
 ## 3. Configure environment
 
-\`\`\`bash
+```bash
 cp .env.example .env
 nano .env
-\`\`\`
+```
 
 Set at minimum:
 
-- \`PUBLIC_BASE_URL\`: the public HTTPS origin for this app, e.g. \`https://game.example.com\`
-- \`CORS_ORIGINS\`: the same origin unless a separate trusted frontend is required
-- \`DB_PASS\`: the PostgreSQL role password created above
+- `PUBLIC_BASE_URL`: the public HTTPS origin for this app, e.g. `https://game.example.com`
+- `CORS_ORIGINS`: the same origin unless a separate trusted frontend is required
+- `DB_PASS`: the PostgreSQL role password created above
 
-Keep \`.env\` private:
+Keep `.env` private:
 
-\`\`\`bash
+```bash
 chmod 600 .env
-\`\`\`
+```
 
-Do not commit \`.env\` to Git.
+Do not commit `.env` to Git.
 
 ## 4. Create the database schema and run
 
-\`\`\`bash
+```bash
 npm run db:migrate
 npm start
-\`\`\`
+```
 
 The server exits if PostgreSQL is unavailable. In another terminal:
 
-\`\`\`bash
+```bash
 curl -i http://127.0.0.1:3000/healthz
 curl -I http://127.0.0.1:3000/gs2c/common/js/html5-script-external.js
-\`\`\`
+```
 
-Open \`http://127.0.0.1:3000/\` and select the demo game.
+Open `http://127.0.0.1:3000/` and select the demo game.
 
 ## 5. Run under systemd
 
 Create a dedicated service account and private environment file:
 
-\`\`\`bash
+```bash
 sudo useradd --system --home /var/www/teucuman --shell /usr/sbin/nologin teucuman
 sudo install -d -o root -g teucuman -m 750 /etc/teucuman
 sudo install -o root -g teucuman -m 640 .env /etc/teucuman/teucuman.env
-\`\`\`
+```
 
 Install the service unit:
 
-\`\`\`bash
+```bash
 sudo cp deploy/teucuman.service /etc/systemd/system/teucuman.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now teucuman
 sudo systemctl status teucuman --no-pager
 sudo journalctl -u teucuman -n 100 --no-pager
-\`\`\`
+```
 
-The unit expects the project at \`/var/www/teucuman\`. If your checkout is elsewhere, update \`WorkingDirectory\` and \`ExecStart\` in the unit before enabling it.
+The unit expects the project at `/var/www/teucuman`. If your checkout is elsewhere, update `WorkingDirectory` and `ExecStart` in the unit before enabling it.
 
 ## 6. Nginx reverse proxy
 
-Copy \`deploy/nginx.conf\` to a new Nginx site file and replace \`game.example.com\` with your domain:
+Copy `deploy/nginx.conf` to a new Nginx site file and replace `game.example.com` with your domain:
 
-\`\`\`bash
+```bash
 sudo cp deploy/nginx.conf /etc/nginx/sites-available/teucuman
 sudo nano /etc/nginx/sites-available/teucuman
 sudo ln -s /etc/nginx/sites-available/teucuman /etc/nginx/sites-enabled/teucuman
 sudo nginx -t
 sudo systemctl reload nginx
-\`\`\`
+```
 
 This creates a separate site and does not require changing other virtual hosts. Configure DNS to point the domain to this server. After DNS resolves, issue TLS using Certbot:
 
-\`\`\`bash
+```bash
 sudo certbot --nginx -d game.example.com
-\`\`\`
+```
 
-Then set \`PUBLIC_BASE_URL=https://game.example.com\` and \`CORS_ORIGINS=https://game.example.com\` in \`/etc/teucuman/teucuman.env\`, and restart:
+Then set `PUBLIC_BASE_URL=https://game.example.com` and `CORS_ORIGINS=https://game.example.com` in `/etc/teucuman/teucuman.env`, and restart:
 
-\`\`\`bash
+```bash
 sudo systemctl restart teucuman
-\`\`\`
+```
 
 ## 7. Smoke test
 
-\`\`\`bash
+```bash
 BASE_URL=https://game.example.com bash scripts/smoke-test.sh
-\`\`\`
+```
 
 The test checks the health endpoint, game page, local game loader asset, and verifies the generated page no longer references the previous Railway host.
 
 ## Game protocol endpoints
 
-- \`GET /gs2c/html5Game.html\`
-- \`POST /api/slots/gs2c_/gameService\`
-- \`GET /api/slots/gs2c/reloadBalance.do\`
-- \`POST /api/slots/gs2c/saveSettings.do\`
-- \`GET /healthz\`
+- `GET /gs2c/html5Game.html`
+- `POST /api/slots/gs2c_/gameService`
+- `GET /api/slots/gs2c/reloadBalance.do`
+- `POST /api/slots/gs2c/saveSettings.do`
+- `GET /healthz`
 
 ## Limitations and production boundary
 
