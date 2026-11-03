@@ -199,7 +199,7 @@ app.all('/hub-demo/saveSettings.do', async (req, res) => {
     let symbol = await ppcodeGames.getGameSymbolForSession(params.mgckey);
     if (!symbol) {
       const referer = req.get('Referer') || '';
-      const match = referer.match(/\\/public\\/(vs[a-z0-9]+)\\/gs2c\\/html5Game\\.php/i);
+      const match = referer.match(/\/public\/(vs[a-z0-9]+)\/gs2c\/html5Game\.php/i);
       if (match) symbol = match[1];
     }
     if (!symbol) return res.status(400).type('text/plain').send('error=1');
