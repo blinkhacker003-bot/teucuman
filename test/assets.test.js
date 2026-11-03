@@ -23,7 +23,7 @@ test('game response fixtures have the required protocol shape', () => {
 test('HTML5 loader referenced by the game page exists in the static root', () => {
   const htmlPath = path.join(root, 'games/sb/html5Game.html');
   const html = fs.readFileSync(htmlPath, 'utf8');
-  assert.match(html, /\\.\\/common\\/js\\/html5-script-external\\.js/);
+  assert.ok(html.includes('./common/js/html5-script-external.js'));
 
   const loaderPath = path.join(root, 'public/gs2c/common/js/html5-script-external.js');
   assert.equal(fs.existsSync(loaderPath), true);
