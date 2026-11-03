@@ -29,9 +29,12 @@ apt-get update
 apt-get install -y nodejs npm postgresql nginx certbot python3-certbot-nginx curl openssl
 
 if ! node -e "process.exit(Number(process.versions.node.split('.')[0]) >= 18 ? 0 : 1)"; then
-  echo "Node.js 18+ is required. Current version: $(node --version 2>/dev/null || echo missing)" >&2
-  exit 1
+  echo "Installing Node.js 20 LTS..."
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  apt-get install -y nodejs
 fi
+
+node -e "if (Number(process.versions.node.split('.')[0]) < 18) process.exit(1)"
 
 systemctl enable --now postgresql
 systemctl enable --now nginx
@@ -41,15 +44,15 @@ DB_NAME="teucuman"
 DB_USER="teucuman_app"
 DB_PASS="$(openssl rand -hex 32)"
 
-ROLE_EXISTS="$(sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='teucuman_app'")"
-DB_EXISTS="$(sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='teucuman'")"
+ROLE_EXISTS="$(runuser -u postgres -- psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='teucuman_app'")"
+DB_EXISTS="$(runuser -u postgres -- psql -tAc "SELECT 1 FROM pg_database WHERE datname='teucuman'")"
 
 if [[ "${ROLE_EXISTS}" == "1" || "${DB_EXISTS}" == "1" ]]; then
   echo "Database role or database already exists. Refusing to overwrite existing PostgreSQL data." >&2
   exit 1
 fi
 
-sudo -u postgres psql -v ON_ERROR_STOP=1 -v db_user="${DB_USER}" -v db_pass="${DB_PASS}" -v db_name="${DB_NAME}" <<'SQL'
+runuser -u postgres -- psql -v ON_ERROR_STOP=1 -v db_user="${DB_USER}" -v db_pass="${DB_PASS}" -v db_name="${DB_NAME}" <<'SQL'
 SELECT format('CREATE ROLE %I LOGIN PASSWORD %L', :'db_user', :'db_pass') \gexec
 SELECT format('CREATE DATABASE %I OWNER %I', :'db_name', :'db_user') \gexec
 SQL
