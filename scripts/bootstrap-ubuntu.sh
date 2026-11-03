@@ -65,6 +65,7 @@ fi
 PP_ASSETS_ROOT=""
 if [[ -d /var/www/ppcode/public ]]; then
   PP_ASSETS_ROOT="/var/www/ppcode/public"
+  setfacl -m u:teucuman:--x /var/www/ppcode
   setfacl -R -m u:teucuman:rX "${PP_ASSETS_ROOT}"
   find "${PP_ASSETS_ROOT}" -type d -exec setfacl -m d:u:teucuman:rX {} \;
 fi
