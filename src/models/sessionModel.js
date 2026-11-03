@@ -5,9 +5,9 @@ const DEFAULT_BALANCE = Number(process.env.DEFAULT_BALANCE || '50000');
 
 async function getOrCreate(mgckey) {
   const { rows } = await db.query(
-    \`INSERT INTO sessions (mgckey) VALUES ($1)
+    `INSERT INTO sessions (mgckey) VALUES ($1)
      ON CONFLICT (mgckey) DO UPDATE SET updated_at = NOW()
-     RETURNING *\`,
+     RETURNING *`,
     [mgckey]
   );
   return rows[0];
@@ -38,10 +38,10 @@ async function debitBet(mgckey, bet) {
     if (currentBalance < bet) throw new Error('INSUFFICIENT_BALANCE');
 
     const { rows: updated } = await client.query(
-      \`UPDATE sessions
+      `UPDATE sessions
        SET balance=balance-$1, spin_index=spin_index+1, updated_at=NOW()
        WHERE mgckey=$2
-       RETURNING *\`,
+       RETURNING *`,
       [bet, mgckey]
     );
 
