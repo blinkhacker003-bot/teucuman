@@ -8,6 +8,7 @@ const fs = require('fs/promises');
 const crypto = require('crypto');
 const session = require('./models/sessionModel');
 const sbGame = require('./engines/sb');
+const ppcodeGames = require('./engines/ppcode');
 const { pool } = require('./config/db');
 
 const app = express();
@@ -127,6 +128,72 @@ app.get('/gs2c/html5Game.html', async (req, res, next) => {
   }
 });
 
+
+// PPCode frontend wrappers are PHP templates; render their small query placeholders
+// in Node while serving the original static asset tree from PP_ASSETS_ROOT.
+async function renderPpcodePage(req, res, next, symbol) {
+  try {
+    const page = await ppcodeGames.renderGame(symbol, req.query);
+    res.status(200)
+      .type('html')
+      .set('Cache-Control', 'no-store, no-cache, must-revalidate')
+      .set('Pragma', 'no-cache')
+      .send(page.html);
+  } catch (err) {
+    if (err.message === 'INVALID_GAME') return res.status(404).type('text/plain').send('Game not found');
+    if (err.message === 'PP_ASSETS_ROOT_NOT_CONFIGURED') return res.status(503).type('text/plain').send('PP_ASSETS_ROOT is not configured');
+    next(err);
+  }
+}
+
+function requestParams(req) {
+  const body = typeof req.body === 'string'
+    ? Object.fromEntries(new URLSearchParams(req.body))
+    : (req.body && typeof req.body === 'object' ? req.body : {});
+  return { ...req.query, ...body };
+}
+
+async function proxyPpcodeGame(req, res) {
+  try {
+    const params = requestParams(req);
+    const result = await ppcodeGames.handleGameRequest(req.params.symbol, params, String(req.query.ver || ''));
+    res.status(result.status).type(result.contentType)
+      .set('Cache-Control', 'no-store')
+      .send(result.body);
+  } catch (err) {
+    const status = err.message === 'INVALID_GAME' || err.message === 'INVALID_SESSION_KEY' ? 400
+      : err.message === 'GAME_SESSION_NOT_FOUND' ? 409 : 502;
+    console.error('[ppcode-game]', req.params.symbol, err.message);
+    res.status(status).type('text/plain').send('error=1');
+  }
+}
+
+app.get('/play/:symbol', async (req, res, next) => {
+  const query = { ...req.query, symbol: req.params.symbol };
+  req.query = query;
+  await renderPpcodePage(req, res, next, req.params.symbol);
+});
+
+app.get('/public/:symbol/gs2c/html5Game.php', (req, res, next) =>
+  renderPpcodePage(req, res, next, req.params.symbol));
+
+app.all('/public/:symbol/gs2c/v3/gameService', proxyPpcodeGame);
+app.all('/public/:symbol/server', proxyPpcodeGame);
+app.all('/game/:symbol/server', proxyPpcodeGame);
+
+if (ppcodeGames.PUBLIC_ROOT) {
+  app.use('/public', express.static(ppcodeGames.PUBLIC_ROOT, {
+    fallthrough: true,
+    etag: true,
+    maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0,
+    setHeaders: res => res.setHeader('X-Content-Type-Options', 'nosniff'),
+  }));
+  app.get('/games/wurfl.js', (req, res, next) => {
+    const file = path.join(ppcodeGames.PUBLIC_ROOT, 'js', 'wurfl.js');
+    fs.access(file).then(() => res.sendFile(file)).catch(() => res.status(404).type('text/plain').send('WURFL not available'));
+  });
+}
+
 app.get('/healthz', async (_req, res) => {
   try {
     await pool.query('SELECT 1');
@@ -219,10 +286,16 @@ app.all('/j/collect', (_req, res) => res.status(204).end());
 app.all('/cdn-cgi/*', (_req, res) => res.status(204).end());
 app.all('/apps/*', emptyStub);
 
-app.get('/', (_req, res) => {
-  res
-    .type('html')
-    .send('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sweet Bonanza 1000 Demo</title><style>body{background:#111;color:#fff;display:grid;place-items:center;min-height:100vh;margin:0;font-family:Arial,sans-serif}a{background:#f59e0b;color:#111;padding:16px 28px;border-radius:12px;text-decoration:none;font-weight:700}</style></head><body><a href="/gs2c/html5Game.html">▶ Open Sweet Bonanza 1000 Demo</a></body></html>');
+app.get('/', async (_req, res) => {
+  let games = [];
+  if (ppcodeGames.PUBLIC_ROOT) {
+    try { games = await ppcodeGames.listGames(); }
+    catch (err) { console.error('[ppcode-catalog]', err.message); }
+  }
+  const cards = games.map(game =>
+    `<a class="game" href="/play/${encodeURIComponent(game.symbol)}"><strong>${game.name}</strong><small>${game.symbol}</small></a>`
+  ).join('');
+  res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Game Demo</title><style>body{background:#111;color:#fff;margin:0;padding:28px;font-family:Arial,sans-serif}h1{margin-top:0}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}.game,.legacy{display:block;background:#242424;color:#fff;padding:16px;border-radius:10px;text-decoration:none}.game small{display:block;color:#aaa;margin-top:8px}.legacy{margin:18px 0;background:#8b5cf6;color:white}.note{color:#bbb;font-size:13px;line-height:1.5}</style></head><body><h1>Game Demo</h1><a class="legacy" href="/gs2c/html5Game.html">Open Sweet Bonanza 1000 demo</a><p class="note">PPCode catalog: ${games.length} local frontend packages. These use the upstream Pragmatic demo service only; no real-money wallet or certified operator integration is provided.</p><div class="grid">${cards}</div></body></html>`);
 });
 
 app.use((req, res) => {
