@@ -20,6 +20,18 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_sessions_updated_at ON sessions (updated_at);
+
+-- Maps the browser-visible local session key to the upstream demo-session key.
+-- This is isolated from the local Sweet Bonanza 1000 fixture sessions.
+CREATE TABLE IF NOT EXISTS provider_game_sessions (
+  local_key       TEXT PRIMARY KEY,
+  game_symbol     TEXT NOT NULL,
+  provider_mgckey TEXT NOT NULL,
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_provider_game_sessions_updated_at
+  ON provider_game_sessions (updated_at);
 `;
 
 (async () => {
