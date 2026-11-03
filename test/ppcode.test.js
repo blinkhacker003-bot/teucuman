@@ -74,6 +74,10 @@ test('Sugar Rush X v4 wrapper is rebound to local assets and a fresh session key
   assert.ok(html.includes('/public/vs20sugarrushx/gs2c/common/games-html5/games/vs/vs20sugarrushx/'));
   assert.ok(html.includes('"gameService":"/hub-demo/ge/v4/gameService"'));
   assert.ok(html.includes('"statisticsURL":"/hub-demo/stats.do"'));
+  assert.ok(html.includes('/public/vs20sugarrushx/gs2c/common/js/html5-script-external.js'));
+  assert.ok(html.includes('window.JsApiHelper=window.JsApiHelper||{init:function(){}}'));
   assert.ok(html.includes('stylename@generic~SESSION@12345678-1234-1234-1234-123456789abc'));
   assert.ok(!html.includes('8f7301d1-7367-462b-8d54-a3dd57c152d8'));
+  assert.ok(!html.includes('demogamesfree.pragmaticplay.net/hub-demo'));
+  assert.ok(!html.includes('clienthub.pragmaticplay.com'));
 });
