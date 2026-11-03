@@ -187,6 +187,12 @@ app.all('/public/:symbol/server', proxyPpcodeGame);
 app.all('/game/:symbol/server', proxyPpcodeGame);
 
 if (ppcodeGames.PUBLIC_ROOT) {
+  // Never expose arbitrary PHP source files from the imported PPCode tree.
+  // The only PHP wrapper we support is rendered by the explicit route above.
+  app.use('/public', (req, res, next) => {
+    if (req.path.toLowerCase().endsWith('.php')) return res.status(404).end();
+    next();
+  });
   app.use('/public', express.static(ppcodeGames.PUBLIC_ROOT, {
     fallthrough: true,
     etag: true,
