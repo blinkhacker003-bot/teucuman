@@ -38,6 +38,7 @@ The private `blinkhacker003-bot/ppcode` repository contains **38 Pragmatic Play 
 
    ```bash
    sudo apt-get install -y acl
+   sudo setfacl -m u:teucuman:--x /var/www/ppcode
    sudo setfacl -R -m u:teucuman:rX /var/www/ppcode/public
    sudo find /var/www/ppcode/public -type d -exec setfacl -m d:u:teucuman:rX {} \\;
    ```
