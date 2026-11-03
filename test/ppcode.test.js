@@ -21,6 +21,7 @@ test('PPCode PHP query placeholders are rendered as escaped HTML values', () => 
 
   assert.equal(html, '<p>session_123</p><p>pt</p><p>BRL</p>');
   assert.ok(!html.includes('<?php'));
+  assert.ok(!html.includes('192.168.10.108'));
 });
 
 test('PPCode PHP query placeholders cannot inject HTML', () => {
