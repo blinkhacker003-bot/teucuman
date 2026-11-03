@@ -40,7 +40,7 @@ function parse(raw) {
 }
 
 function serialize(value) {
-  return Object.entries(value).map(([key, item]) => \`\${key}=\${item}\`).join('&');
+  return Object.entries(value).map(([key, item]) => `${key}=${item}`).join('&');
 }
 
 function patchBalance(raw, balance) {
@@ -106,7 +106,7 @@ async function handle(action, params = {}) {
   if (action === 'doCollect') return doCollect(mgckey);
 
   const balance = await session.getBalance(mgckey);
-  return \`balance=\${fmt(balance)}&balance_cash=\${fmt(balance)}&balance_bonus=0.00&na=s&stime=\${Date.now()}\`;
+  return `balance=${fmt(balance)}&balance_cash=${fmt(balance)}&balance_bonus=0.00&na=s&stime=${Date.now()}`;
 }
 
 module.exports = { handle };
