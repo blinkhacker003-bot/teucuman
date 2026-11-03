@@ -169,10 +169,13 @@ async function proxyPpcodeGame(req, res) {
   }
 }
 
-app.get('/play/:symbol', async (req, res, next) => {
-  const query = { ...req.query, symbol: req.params.symbol };
-  req.query = query;
-  await renderPpcodePage(req, res, next, req.params.symbol);
+app.get('/play/:symbol', (req, res) => {
+  const query = new URLSearchParams({
+    symbol: req.params.symbol,
+    lang: String(req.query.lang || 'pt').slice(0, 8),
+    cur: String(req.query.cur || 'BRL').slice(0, 8),
+  });
+  res.redirect(302, `/public/${encodeURIComponent(req.params.symbol)}/gs2c/html5Game.php?${query.toString()}`);
 });
 
 app.get('/public/:symbol/gs2c/html5Game.php', (req, res, next) =>
