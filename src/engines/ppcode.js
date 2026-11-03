@@ -53,6 +53,15 @@ function escapeHtml(value) {
   })[char]);
 }
 
+function renderTemplate(template, { symbol, user, lang, currency }) {
+  let html = template
+    .replace(/<\\?php\\s+echo\\s+\\$_GET\\[['"]user['"]\\];\\s*\\?>/g, escapeHtml(user))
+    .replace(/<\\?php\\s+echo\\s+\\$_GET\\[['"]lang['"]\\];\\s*\\?>/g, escapeHtml(lang))
+    .replace(/<\\?php\\s+echo\\s+\\$_GET\\[['"]cur['"]\\];\\s*\\?>/g, escapeHtml(currency));
+  if (/<\\?php/.test(html)) throw new Error('UNSUPPORTED_GAME_TEMPLATE');
+  return html;
+}
+
 async function renderGame(symbol, query = {}) {
   const safe = safeSymbol(symbol);
   const { wrapper } = await gameDirectory(safe);
@@ -60,14 +69,8 @@ async function renderGame(symbol, query = {}) {
   if (user.length > 128 || !/^[a-zA-Z0-9_-]+$/.test(user)) throw new Error('INVALID_SESSION_KEY');
   const lang = String(query.lang || 'pt').slice(0, 8);
   const currency = String(query.cur || 'BRL').slice(0, 8);
-  let html = await fs.readFile(wrapper, 'utf8');
-
-  html = html
-    .replace(/<\?php\s+echo\s+\$_GET\[['"]user['"]\];\s*\?>/g, escapeHtml(user))
-    .replace(/<\?php\s+echo\s+\$_GET\[['"]lang['"]\];\s*\?>/g, escapeHtml(lang))
-    .replace(/<\?php\s+echo\s+\$_GET\[['"]cur['"]\];\s*\?>/g, escapeHtml(currency));
-
-  if (/<\?php/.test(html)) throw new Error('UNSUPPORTED_GAME_TEMPLATE');
+  const template = await fs.readFile(wrapper, 'utf8');
+  const html = renderTemplate(template, { symbol: safe, user, lang, currency });
   return { html, user, symbol: safe };
 }
 
@@ -174,5 +177,6 @@ module.exports = {
   safeSymbol,
   listGames,
   renderGame,
+  renderTemplate,
   handleGameRequest,
 };
