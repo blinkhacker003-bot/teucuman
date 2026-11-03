@@ -115,6 +115,7 @@ async function createProviderKey(symbol) {
 
 async function handleGameRequest(symbol, params, ver = '') {
   const safe = safeSymbol(symbol);
+  await gameDirectory(safe);
   const action = String(params.action || '');
 
   // PPCode handles the settings action by reading the game's local settings file.
