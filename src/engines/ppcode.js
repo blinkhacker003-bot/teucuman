@@ -93,7 +93,10 @@ async function renderGame(symbol, query = {}) {
   const generatedKey = safe === 'vs20sugarrushx'
     ? `stylename@generic~SESSION@${crypto.randomUUID()}`
     : crypto.randomUUID();
-  const user = String(query.user || generatedKey);
+  const requestedUser = String(query.user || '');
+  const user = safe === 'vs20sugarrushx'
+    ? (/^stylename@generic~SESSION@[a-f0-9-]{36}$/i.test(requestedUser) ? requestedUser : generatedKey)
+    : (requestedUser || generatedKey);
   if (user.length > 128 || !/^[-a-zA-Z0-9_@~]+$/.test(user)) throw new Error('INVALID_SESSION_KEY');
   const lang = String(query.lang || 'pt').slice(0, 8);
   const currency = String(query.cur || 'BRL').slice(0, 8);
