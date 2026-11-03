@@ -9,6 +9,7 @@ const PUBLIC_ROOT = process.env.PP_ASSETS_ROOT
   : null;
 const PROVIDER_ORIGIN = process.env.PRAGMATIC_DEMO_ORIGIN || 'https://demogamesfree.pragmaticplay.net';
 const LEGACY_V3_ORIGIN = 'https://demogamesfree.ppgames.net';
+const PROVIDER_REQUEST_ORIGIN = 'https://demogamesfree.ppgames.net';
 const REQUEST_TIMEOUT_MS = Number.parseInt(process.env.PROVIDER_TIMEOUT_MS || '20000', 10);
 const SYMBOL_PATTERN = /^vs[a-z0-9]+$/;
 
@@ -131,7 +132,7 @@ async function createProviderKey(symbol) {
   url.searchParams.set('jurisdiction', '99');
   url.searchParams.set('lobby_url', 'https://www.pragmaticplay.com/en/');
   url.searchParams.set('lang', 'PT');
-  url.searchParams.set('cur', 'BRL');
+  url.searchParams.set('cur', 'EUR');
 
   const response = await fetch(url, {
     redirect: 'follow',
@@ -222,17 +223,29 @@ async function handleGameRequest(symbol, params, ver = '') {
     providerKey = existingSession.provider_mgckey;
   }
 
+  // Match PPCode's Game::getPostData contract instead of forwarding arbitrary
+  // browser fields to the upstream demo service.
   const form = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null && !['__proto__', 'constructor', 'prototype'].includes(key)) {
-      form.set(key, String(value));
-    }
+  const postData = {
+    action,
+    symbol: safe,
+    cver: params.cver,
+    index: params.index,
+    counter: params.counter,
+    repeat: params.repeat,
+    mgckey: providerKey,
+    ver: ver || params.ver,
+  };
+  if (action === 'doSpin') {
+    postData.c = params.c;
+    postData.l = params.l;
+    postData.bl = params.bl;
   }
-  form.set('action', action);
-  form.set('symbol', safe);
-  form.set('mgckey', providerKey);
+  for (const [key, value] of Object.entries(postData)) {
+    if (value !== undefined && value !== null) form.set(key, String(value));
+  }
 
-  const origin = ver === 'v4' || ver === 'gameService' ? PROVIDER_ORIGIN : LEGACY_V3_ORIGIN;
+  const origin = PROVIDER_REQUEST_ORIGIN;
   const response = await fetch(providerEndpoint(ver), {
     method: 'POST',
     redirect: 'follow',
