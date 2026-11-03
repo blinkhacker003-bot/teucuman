@@ -62,6 +62,8 @@ test('Sugar Rush X v4 wrapper is rebound to local assets and a fresh session key
     '"datapath":"https://demogamesfree.pragmaticplay.net/hub-demo/common/v2/games-html5/games/vs/vs20sugarrushx/"',
     '"gameService":"https://demogamesfree.pragmaticplay.net/hub-demo/ge/v4/gameService"',
     '"statisticsURL":"https://demogamesfree.pragmaticplay.net/hub-demo/stats.do"',
+    '<script src="https://demogamesfree.pragmaticplay.net/hub-demo/common/js/html5-script-external.js"></script>',
+    '<script src="https://demogamesfree.pragmaticplay.net/hub-demo/common/js/demo-js-api-script.js"></script>',
     '"mgckey":"stylename@generic~SESSION@8f7301d1-7367-462b-8d54-a3dd57c152d8"',
   ].join(',');
   const html = ppcode.renderTemplate(template, {
