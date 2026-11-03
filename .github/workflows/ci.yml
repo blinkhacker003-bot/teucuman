@@ -22,5 +22,7 @@ jobs:
           node --check src/config/migrate.js
           node --check src/models/sessionModel.js
           node --check src/engines/sb.js
+          node --check src/engines/ppcode.js
+          node --check test/ppcode.test.js
       - name: Check shell script syntax
         run: bash -n scripts/bootstrap-ubuntu.sh scripts/smoke-test.sh
