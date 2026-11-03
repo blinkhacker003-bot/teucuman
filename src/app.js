@@ -75,6 +75,7 @@ app.use((req, _res, next) => {
     'saveSettings',
     'html5Game',
     'play',
+    'server',
   ];
   if (!keepQuery.some(item => req.path.includes(item))) {
     req.url = req.url.split('?')[0];
