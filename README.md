@@ -14,6 +14,28 @@ A standalone Node.js/Express server for the bundled Sweet Bonanza 1000 HTML5 fro
 - Idempotent database migration: `npm run db:migrate`
 - Health endpoint: `GET /healthz`
 
+## Quick Ubuntu bootstrap
+
+For a fresh Ubuntu host, clone the repository to the service path:
+
+```bash
+sudo git clone --branch codex/production-bootstrap https://github.com/blinkhacker003-bot/teucuman.git /var/www/teucuman
+cd /var/www/teucuman
+sudo DOMAIN=game.example.com bash scripts/bootstrap-ubuntu.sh
+```
+
+The bootstrap script installs Node.js 20 when the distro package is too old, PostgreSQL, Nginx and Certbot; creates a dedicated PostgreSQL database and restricted Linux service account; writes a private environment file; runs the migration; and adds a new Nginx site named `teucuman`. It refuses to overwrite an existing database role/database or Nginx site with those names. It does not modify other Nginx virtual hosts.
+
+After DNS for the domain points to this server, issue TLS:
+
+```bash
+sudo certbot --nginx -d game.example.com
+sudo systemctl restart teucuman
+BASE_URL=https://game.example.com bash scripts/smoke-test.sh
+```
+
+Replace `game.example.com` with the domain you control. Do not run the bootstrap script on a server where the `teucuman` PostgreSQL role/database or Nginx site already belongs to another application.
+
 ## Requirements
 
 - Linux server (Ubuntu 22.04/24.04 recommended)
