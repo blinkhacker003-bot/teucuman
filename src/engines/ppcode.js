@@ -77,7 +77,7 @@ function renderTemplate(template, { symbol, user, lang, currency }) {
   // The game has no cashier/lobby integration here, so provide its no-op API.
   html = html.replace(
     /<script[^>]+src="https:\/\/demogamesfree\.pragmaticplay\.net\/hub-demo\/common\/js\/demo-js-api-script\.js"><\/script>/,
-    '<script>window.JsApiHelper=window.JsApiHelper||{init:function(){}};</script>'
+    '<script>window.JsApiHelper=window.JsApiHelper||{EVENTS:{SESSION:"SESSION"},init:function(){},sendMessage:function(){}};window.SessionHelper=window.SessionHelper||{init:function(){},getSession:function(){return {};}};</script>'
   );
 
   // The imported wrappers contain an unused hard-coded private-IP console
