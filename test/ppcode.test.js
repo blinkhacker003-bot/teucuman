@@ -47,3 +47,12 @@ test('unknown PHP template directives fail closed', () => {
     { message: 'UNSUPPORTED_GAME_TEMPLATE' }
   );
 });
+
+test('embedded private-IP console telemetry is redirected locally', () => {
+  const html = ppcode.renderTemplate(
+    '<script>var endpoint = "https://192.168.10.108:8000/console.php?";</script>',
+    { symbol: 'vs20sugarrush', user: 'session_123', lang: 'pt', currency: 'BRL' }
+  );
+  assert.ok(html.includes('/__disabled_game_console__?'));
+  assert.ok(!html.includes('192.168.10.108'));
+});
